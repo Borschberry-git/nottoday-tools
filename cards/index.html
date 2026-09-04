@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Пятница — конструктор карт</title>
+<style>
+  :root { --ink:#1d1d1b; --gray:#6b6b6b; --light:#f1ede4; --rule:#b8b1a3; --bad:#a3271d; --ok:#2e7d32; --bg:#e9e4d8; --back:#2b2a33; --paper:#faf8f3; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: Calibri, "Segoe UI", sans-serif; color:var(--ink); background:var(--bg); }
+  header { padding:10px 20px; border-bottom:1px solid var(--rule); background:var(--paper); display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+  header h1 { font-family: Georgia, serif; font-size:18px; margin:0; }
+  .legend { display:flex; gap:22px; flex-wrap:wrap; font-size:12px; color:var(--gray); }
+  .legend .st b { color:var(--ink); }
+  .sw { display:inline-block; width:12px; height:12px; border-radius:2px; vertical-align:-2px; margin:0 3px 0 8px; border:1px solid rgba(0,0,0,.25); }
+  .who { margin-left:auto; font-size:12px; color:var(--gray); }
+  .who b { color:var(--ink); cursor:pointer; border-bottom:1px dotted; }
+  .status { font-size:12px; color:var(--gray); }
+  .status.err { color:var(--bad); font-weight:bold; }
+  .wrap { display:grid; grid-template-columns: 260px 1fr; height: calc(100vh - 54px); }
+  nav { overflow:auto; padding:12px; background:#f3efe6; border-right:1px solid var(--rule); }
+  nav .section { font-size:11px; color:var(--gray); text-transform:uppercase; letter-spacing:1px; margin:10px 4px 6px; display:flex; justify-content:space-between; align-items:center; }
+  .place { background:#fff; border:1px solid var(--rule); border-radius:8px; margin-bottom:8px; cursor:pointer; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.08); }
+  .place:hover { border-color:#8a8378; }
+  .place.active { outline:2px solid var(--ink); }
+  .place.dim { opacity:.55; }
+  .code { display:flex; height:14px; }
+  .code span { flex:1; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:bold; color:#333; }
+  /* тот же узор, что на рубашке (45°, полоса 6px, шаг 12px), только светлый: рубашка проступает сквозь сокет */
+  .any { background:#fff repeating-linear-gradient(45deg, #e4e0d6 0 6px, transparent 6px 12px); color:#777; }
+  .place .body { padding:8px 10px; }
+  .place .name { font-family: Georgia, serif; font-weight:bold; font-size:13px; text-transform:uppercase; }
+  .place .n { float:right; font-size:11px; color:var(--gray); }
+  .place .n.low { color:var(--bad); font-weight:bold; }
+  main { overflow:auto; padding:18px 24px; }
+  main h2 { font-family: Georgia, serif; margin:0 0 4px; display:flex; align-items:center; gap:12px; }
+  main .sub { color:var(--gray); margin-bottom:14px; font-size:13px; }
+  .grid { display:flex; flex-wrap:wrap; gap:14px; }
+  .ev { width:200px; height:290px; perspective:1000px; cursor:pointer; position:relative; }
+  .ev .inner { position:relative; width:100%; height:100%; transition: transform .45s; transform-style:preserve-3d; }
+  .ev.flipped .inner { transform: rotateY(180deg); }
+  .face, .back { position:absolute; inset:0; backface-visibility:hidden; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,.25); overflow:hidden; }
+  .back { background: var(--back); color:#e9e4d8; border:5px solid #4a4856; background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0 6px, transparent 6px 12px); }
+  .back .brand { position:absolute; top:44%; left:0; right:0; text-align:center; font-family:Georgia, serif; font-size:11px; letter-spacing:4px; opacity:.5; text-transform:uppercase; }
+  .back .code { position:absolute; left:0; right:0; bottom:0; height:34px; }
+  .back .code span { font-size:16px; }
+  .face { background:#fff; transform: rotateY(180deg); padding:12px 14px 40px; border:1px solid var(--rule); display:flex; flex-direction:column; }
+  .face h3 { font-family: Georgia, serif; font-size:14px; margin:0 0 6px; text-transform:uppercase; border-bottom:1.5px solid var(--ink); padding-bottom:5px; padding-right:40px; }
+  .face p { font-family: Georgia, serif; font-size:11.5px; line-height:1.4; margin:0; background:var(--light); padding:8px; flex:1; overflow:auto; }
+  .face .code { position:absolute; left:0; right:0; bottom:0; height:22px; }
+  .face .marks { font-size:10px; color:var(--gray); margin:4px 0 0; min-height:12px; }
+  .face .marks .bad { color:var(--bad); font-weight:bold; }
+  .edit { position:absolute; top:8px; right:8px; z-index:2; width:34px; height:34px; background:var(--paper); border:1px solid var(--rule); border-radius:6px; padding:0; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink); }
+  .edit:hover { background:#fff; border-color:var(--ink); }
+  .edit svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .ev.removed { opacity:.6; }
+  .btn { font:inherit; font-size:13px; padding:6px 12px; border:1px solid var(--ink); background:var(--paper); border-radius:6px; cursor:pointer; }
+  .btn.primary { background:var(--ink); color:#fff; }
+  .btn.small { font-size:11px; padding:3px 8px; }
+  .btn.danger { border-color:var(--bad); color:var(--bad); }
+  .list .item { padding:6px 4px; font-size:13px; border-bottom:1px solid #ddd6c8; }
+  .list .item .where { color:var(--gray); font-size:12px; }
+  .cell { margin:6px 0 2px; font-size:12px; color:var(--gray); text-transform:uppercase; letter-spacing:1px; }
+  /* редактор */
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:10; }
+  .panel { background:var(--paper); border-radius:12px; width:min(920px, 96vw); max-height:94vh; overflow:auto; padding:20px 24px; box-shadow:0 10px 40px rgba(0,0,0,.4); display:grid; grid-template-columns: 1fr 260px; gap:20px; }
+  .panel h2 { grid-column:1/-1; margin:0 0 4px; font-family:Georgia, serif; font-size:18px; }
+  .panel label { display:block; font-size:12px; color:var(--gray); margin:10px 0 4px; }
+  .panel input[type=text], .panel textarea { width:100%; font:inherit; font-size:14px; padding:8px; border:1px solid var(--rule); border-radius:6px; background:#fff; }
+  .panel textarea { font-family:Georgia, serif; min-height:120px; resize:vertical; }
+  .picker { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .picker .stripe { border:1px solid var(--rule); border-radius:8px; padding:8px; background:#fff; }
+  .picker .stripe b { font-size:12px; display:block; margin-bottom:6px; }
+  .opt { display:flex; align-items:center; gap:8px; font-size:13px; padding:4px 6px; border-radius:6px; cursor:pointer; border:2px solid transparent; }
+  .opt:hover { background:var(--light); }
+  .opt.on { border-color:var(--ink); background:var(--light); }
+  .opt .sw { margin:0; width:16px; height:16px; }
+  .hints { font-size:13px; }
+  .hints .h { padding:8px 10px; border-radius:6px; margin-bottom:8px; background:#fff; border:1px solid var(--rule); }
+  .hints .h.warn { border-color:var(--bad); color:var(--bad); }
+  .hints .h.good { border-color:var(--ok); color:var(--ok); }
+  .hints ul { margin:6px 0 0; padding-left:18px; color:var(--gray); font-size:12px; }
+  .hints .fit { font-size:12px; color:var(--gray); }
+  .actions { grid-column:1/-1; display:flex; gap:10px; align-items:center; margin-top:8px; }
+  .actions .spacer { flex:1; }
+  .counter { font-size:11px; color:var(--gray); text-align:right; }
+  .counter.over { color:var(--bad); font-weight:bold; }
+  .preview { width:200px; height:290px; margin:0 auto; }
+  .preview .face { position:relative; transform:none; height:100%; }
+  .chk { font-size:12px; display:flex; align-items:center; gap:6px; margin-top:8px; }
+  .toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:8px 16px; border-radius:8px; font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:20; }
+  .toast.show { opacity:1; }
+  @media (max-width: 760px) { .wrap { grid-template-columns:1fr; height:auto; } nav { max-height:40vh; } .panel { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Пятница: конструктор карт</h1>
+  <div class="legend" id="legend"></div>
+  <div class="who">Правит: <b id="who">—</b></div>
+  <div class="status" id="status">подключаюсь…</div>
+</header>
+<div class="wrap">
+  <nav id="nav"></nav>
+  <main id="main"></main>
+</div>
+<div id="editor" hidden></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+// ===== НАСТРОЙКИ. Ключ публичный по замыслу Supabase: доступ ограничен правилами в базе. =====
+const SUPABASE_URL = "https://tnyaifuvhszycvncrbeq.supabase.co";
+const SUPABASE_KEY = "sb_publishable_NEaWPBnazEECJgX0057rwg_0NlZOJI0";
+
+// ===== ЯЗЫК. Три полоски, в каждой три цвета и крестик «любой». =====
+const STRIPES = [
+  { name:"Где",      values:["на улице","в помещении","на природе"] },
+  { name:"Компания", values:["при своих","при посторонних","под надзором"] },
+  { name:"Градус",   values:["много алкоголя","мало алкоголя","без алкоголя"] },
+];
+const COLORS = ["#c8462b","#2f5f9e","#e6c229"];
+const TEXT_LIMIT = 230; // длиннее не влезает на карту 200×290 при нынешнем кегле
+const CHECKLIST = [
+  "Только здесь и сейчас, без места и времени в тексте.",
+  "Ситуация на всю компанию, толчок снаружи.",
+  "Никаких «один из ваших»: кто именно, решают игроки.",
+  "В сцене нет того, при ком отбитый выбор становится неловким (ребёнок, который смотрит на тебя).",
+  "Тон ернее и гнуснее. Последняя фраза — крючок.",
+];
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let PLACES = [], CARDS = [], current = null, WHO = "";
+try { WHO = localStorage.getItem("who") || ""; } catch(e){}
+
+const fits = (ec, pc) => [...ec].every((a,i) => a==="*" || pc[i]==="*" || a===pc[i]);
+const activePlaces = () => PLACES.filter(p => p.status !== "removed");
+const activeCards  = () => CARDS.filter(c => c.status !== "removed");
+const placesFor = ec => activePlaces().filter(p => fits(ec, p.code));
+const cardsFor  = pc => activeCards().filter(c => fits(c.code, pc));
+const codeWords = code => [...code].map((ch,i)=> ch==="*" ? "любой" : STRIPES[i].values[ch-1]).join(" · ");
+const esc = s => String(s ?? "").replace(/[&<>"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+function stripeHTML(code){
+  return `<div class="code">` + [...code].map((ch,i) => ch==="*"
+    ? `<span class="any">✕</span>`
+    : `<span style="background:${COLORS[ch-1]}" title="${STRIPES[i].name}: ${STRIPES[i].values[ch-1]}"></span>`).join("") + `</div>`;
+}
+function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"), 2200); }
+function setStatus(msg, err){ const s=document.getElementById("status"); s.textContent=msg; s.className="status"+(err?" err":""); }
+
+// ===== ДАННЫЕ =====
+async function load(){
+  const [p, c] = await Promise.all([
+    sb.from("places").select("*").order("code").order("id"),
+    sb.from("cards").select("*").order("id"),
+  ]);
+  if (p.error || c.error){ setStatus("ошибка чтения: " + (p.error||c.error).message, true); return; }
+  PLACES = p.data; CARDS = c.data;
+  setStatus(`${activePlaces().length} мест · ${activeCards().length} карт · живая связь`);
+  render();
+}
+function subscribe(){
+  sb.channel("live")
+    .on("postgres_changes", { event:"*", schema:"public", table:"cards" }, load)
+    .on("postgres_changes", { event:"*", schema:"public", table:"places" }, load)
+    .subscribe(st => { if (st==="CHANNEL_ERROR") setStatus("живая связь оборвалась, обновите страницу", true); });
+}
+async function saveCard(id, fields){
+  fields.updated_by = WHO;
+  const r = id ? await sb.from("cards").update(fields).eq("id", id) : await sb.from("cards").insert(fields);
+  if (r.error){ toast("не сохранилось: " + r.error.message); return false; }
+  toast(id ? "сохранено" : "карта добавлена"); await load(); return true;
+}
+async function savePlace(id, fields){
+  fields.updated_by = WHO;
+  const r = id ? await sb.from("places").update(fields).eq("id", id) : await sb.from("places").insert(fields);
+  if (r.error){ toast("не сохранилось: " + r.error.message); return false; }
+  toast(id ? "место сохранено" : "место добавлено"); await load(); return true;
+}
+
+// ===== СПИСОК МЕСТ =====
+function render(){
+  const nav = document.getElementById("nav");
+  nav.innerHTML = "";
+  const sec = (t, extra) => { const d=document.createElement("div"); d.className="section"; d.innerHTML = `<span>${t}</span>` + (extra||""); nav.appendChild(d); return d; };
+  sec("Обзор");
+  nav.appendChild(placeCard("Все карты", null, activeCards().length, "all"));
+  const orphans = activeCards().filter(c => placesFor(c.code).length===0).length;
+  nav.appendChild(placeCard("Без места", null, orphans, "orphans", orphans>0));
+  const removed = CARDS.filter(c => c.status==="removed").length;
+  nav.appendChild(placeCard("Снятые карты", null, removed, "removed"));
+  const s = sec("Места", `<button class="btn small" id="addPlace">+ место</button>`);
+  s.querySelector("#addPlace").onclick = () => openPlaceEditor(null);
+  let lastCode = "";
+  activePlaces().forEach(p => {
+    if (p.code !== lastCode){ const c=document.createElement("div"); c.className="cell"; c.textContent=codeWords(p.code); nav.appendChild(c); lastCode=p.code; }
+    const n = cardsFor(p.code).length;
+    const el = placeCard(p.name + (p.status==="candidate" ? " (?)" : ""), p.code, n, p.id, n<10);
+    if (p.status==="candidate") el.classList.add("dim");
+    nav.appendChild(el);
+  });
+  const gone = PLACES.filter(p => p.status==="removed");
+  if (gone.length){ sec("В расширении"); gone.forEach(p => { const el=placeCard(p.name, p.code, cardsFor(p.code).length, p.id); el.classList.add("dim"); nav.appendChild(el); }); }
+  renderMain();
+}
+function placeCard(name, code, n, key, low){
+  const d = document.createElement("div");
+  d.className = "place" + (current===key ? " active":"");
+  d.innerHTML = (code ? stripeHTML(code) : "") + `<div class="body"><span class="n${low?' low':''}">${n}</span><div class="name">${esc(name)}</div></div>`;
+  d.onclick = () => { current = key; render(); };
+  return d;
+}
+
+// ===== КАРТЫ =====
+function marksHTML(c){
+  const m = [];
+  if (c.draft_code) m.push("код черновой");
+  if (c.draft_text) m.push("текст черновой");
+  if (c.status==="removed") m.push(`<span class="bad">снята</span>`);
+  if (c.note) m.push(esc(c.note));
+  return `<div class="marks">${m.join(" · ")}</div>`;
+}
+function evCard(c){
+  return `<div class="ev flipped${c.status==="removed"?" removed":""}" data-id="${c.id}"><button class="edit" data-edit="${c.id}" title="Править"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><div class="inner">
+    <div class="back"><div class="brand">Пятница</div>${stripeHTML(c.code)}</div>
+    <div class="face"><h3>${esc(c.name)}</h3><p>${esc(c.text)}</p>${marksHTML(c)}${stripeHTML(c.code)}</div>
+  </div></div>`;
+}
+function renderMain(){
+  const m = document.getElementById("main");
+  const addBtn = `<button class="btn primary small" id="addCard">+ новая карта</button>`;
+  if (current === null){
+    m.innerHTML = `<h2>Выберите место ${addBtn}</h2><div class="sub">Полоски сверху у места и снизу у карты. Совпало, если в каждой полоске цвета равны или стоит крестик. Карты лежат лицом; клик переворачивает на рубашку и обратно, карандаш открывает редактор. Правки видят все, у кого открыта страница.</div>`;
+  } else if (current === "all"){
+    m.innerHTML = `<h2>Все карты ${addBtn}</h2><div class="sub">${activeCards().length} карт.</div><div class="list">` +
+      activeCards().map(c => { const w = placesFor(c.code); return `<div class="item"><b>${esc(c.name)}</b> <button class="btn small" data-edit="${c.id}">править</button> <span class="where">[${codeWords(c.code)}] — ${w.length} мест: ${w.map(p=>esc(p.name)).join(", ") || "нет"}</span></div>`; }).join("") + `</div>`;
+  } else if (current === "orphans"){
+    const o = activeCards().filter(c => placesFor(c.code).length===0);
+    m.innerHTML = `<h2>Карты без места ${addBtn}</h2><div class="sub">Код не совпадает ни с одним местом.</div><div class="grid">` + o.map(evCard).join("") + `</div>` + (o.length? "" : "<div class='sub'>Нет.</div>");
+  } else if (current === "removed"){
+    const o = CARDS.filter(c => c.status==="removed");
+    m.innerHTML = `<h2>Снятые карты</h2><div class="sub">Не удаляются: причина в заметке, вернуть можно из редактора.</div><div class="grid">` + o.map(evCard).join("") + `</div>` + (o.length? "" : "<div class='sub'>Нет.</div>");
+  } else {
+    const p = PLACES.find(x => x.id===current); if (!p){ current=null; return renderMain(); }
+    const evs = cardsFor(p.code);
+    m.innerHTML = `<h2>${esc(p.name)} <button class="btn small" id="editPlace">править место</button> ${addBtn}</h2><div class="sub">${codeWords(p.code)}. Карт: ${evs.length} из ${activeCards().length}.${p.note ? " Заметка: "+esc(p.note) : ""}</div><div class="grid">` + evs.map(evCard).join("") + `</div>`;
+    m.querySelector("#editPlace").onclick = () => openPlaceEditor(p);
+  }
+  const b = m.querySelector("#addCard"); if (b) b.onclick = () => openCardEditor(null);
+}
+document.getElementById("main").addEventListener("click", ev => {
+  const e = ev.target.closest("[data-edit]"); if (e){ ev.stopPropagation(); openCardEditor(CARDS.find(c => c.id==e.dataset.edit)); return; }
+  const c = ev.target.closest(".ev"); if (c) c.classList.toggle("flipped");
+});
+
+// ===== РЕДАКТОР КАРТЫ =====
+function openCardEditor(card){
+  const isNew = !card;
+  const st = { name: card?.name || "", code: card?.code || (typeof current==="number" ? PLACES.find(p=>p.id===current)?.code : "***") || "***", text: card?.text || "", note: card?.note || "", draft_code: card?.draft_code || false, draft_text: card?.draft_text || false };
+  const ed = document.getElementById("editor");
+  ed.hidden = false;
+  ed.innerHTML = `<div class="overlay"><div class="panel">
+    <h2>${isNew ? "Новая карта" : "Правка: " + esc(card.name)}</h2>
+    <div>
+      <label>Название</label><input type="text" id="f-name" value="${esc(st.name)}" maxlength="40" placeholder="Коротко, как заголовок анекдота">
+      <label>Код: три полоски</label>
+      <div class="picker" id="picker"></div>
+      <label>Текст</label><textarea id="f-text" placeholder="Что случилось. Только здесь и сейчас.">${esc(st.text)}</textarea>
+      <div class="counter" id="counter"></div>
+      <label>Заметка (для своих: сомнения, причина снятия)</label><input type="text" id="f-note" value="${esc(st.note)}">
+      <label>Кто правит (подпись в истории)</label><input type="text" id="f-who" value="${esc(WHO)}" maxlength="30" placeholder="Имя">
+      <div class="chk"><input type="checkbox" id="f-dc" ${st.draft_code?"checked":""}><label for="f-dc" style="margin:0">код черновой</label>
+        &nbsp;&nbsp;<input type="checkbox" id="f-dt" ${st.draft_text?"checked":""}><label for="f-dt" style="margin:0">текст черновой</label></div>
+    </div>
+    <div class="hints" id="hints"></div>
+    <div class="actions">
+      <button class="btn primary" id="save">${isNew ? "Добавить" : "Сохранить"}</button>
+      <button class="btn" id="cancel">Отмена</button>
+      <span class="spacer"></span>
+      ${!isNew && card.status!=="removed" ? `<span id="rmbox"><button class="btn danger" id="remove">Снять карту</button></span>` : ""}
+      ${!isNew && card.status==="removed" ? `<button class="btn" id="restore">Вернуть карту</button>` : ""}
+    </div>
+  </div></div>`;
+  const $ = id => ed.querySelector("#"+id);
+  function drawPicker(){
+    $("picker").innerHTML = STRIPES.map((s,i) => `<div class="stripe"><b>${i+1}. ${s.name}</b>` +
+      s.values.map((v,j) => `<div class="opt${st.code[i]==String(j+1)?" on":""}" data-i="${i}" data-v="${j+1}"><span class="sw" style="background:${COLORS[j]}"></span>${v}</div>`).join("") +
+      `<div class="opt${st.code[i]==="*"?" on":""}" data-i="${i}" data-v="*"><span class="sw any" style="display:flex;align-items:center;justify-content:center;font-size:11px">✕</span>любой</div></div>`).join("");
+    $("picker").querySelectorAll(".opt").forEach(o => o.onclick = () => { const a=[...st.code]; a[o.dataset.i]=o.dataset.v; st.code=a.join(""); drawPicker(); drawHints(); });
+  }
+  function drawHints(){
+    st.name = $("f-name").value.trim(); st.text = $("f-text").value;
+    const w = placesFor(st.code);
+    const dup = activeCards().find(c => c.name.toLowerCase()===st.name.toLowerCase() && c.id!==card?.id);
+    const stars = [...st.code].filter(ch=>ch==="*").length;
+    let h = "";
+    h += `<div class="h ${w.length? (w.length===1?"good":""):"warn"}"><b>${codeWords(st.code)}</b><div class="fit">${w.length ? `Ляжет на ${w.length} ${w.length===1?"место":"мест"}: ${w.map(p=>esc(p.name)).join(", ")}` : "Ни одно место не совпадает: карта будет лежать без дела"}</div></div>`;
+    if (w.length===1) h += `<div class="h good">Карта одного места: можно называть его приметы (заливка, парилка, лежаки).</div>`;
+    if (w.length>1) h += `<div class="h">Карта многих мест: ничего местного в тексте. Формы, цвета, колонны, лавки, столики — только если они есть во всех ${w.length} местах.</div>`;
+    if (stars===3) h += `<div class="h">Три крестика: карта «везде». Таких должно быть мало.</div>`;
+    if (dup) h += `<div class="h warn">Карта с таким названием уже есть.</div>`;
+    h += `<div class="h">Чеклист<ul>${CHECKLIST.map(x=>`<li>${x}</li>`).join("")}</ul></div>`;
+    $("hints").innerHTML = h;
+    const n = st.text.length; const c = $("counter"); c.textContent = `${n} / ${TEXT_LIMIT} знаков`; c.className = "counter" + (n>TEXT_LIMIT?" over":"");
+  }
+  drawPicker(); drawHints();
+  $("f-name").oninput = drawHints; $("f-text").oninput = drawHints;
+  $("cancel").onclick = closeEditor;
+  ed.querySelector(".overlay").onclick = e => { if (e.target===e.currentTarget) closeEditor(); };
+  $("save").onclick = async () => {
+    const fields = { name: $("f-name").value.trim(), code: st.code, text: $("f-text").value.trim(), note: $("f-note").value.trim(), draft_code: $("f-dc").checked, draft_text: $("f-dt").checked };
+    if (!fields.name){ toast("нужно название"); return; }
+    if (!fields.text){ toast("нужен текст"); return; }
+    setWho($("f-who").value);
+    if (await saveCard(card?.id, fields)) closeEditor();
+  };
+  const rm = $("remove"); if (rm) rm.onclick = () => {
+    $("rmbox").innerHTML = `<input type="text" id="f-why" placeholder="Почему снимаем? Останется в заметке" style="font:inherit;padding:5px;width:260px"> <button class="btn danger" id="remove2">Снять</button>`;
+    $("f-why").value = $("f-note").value; $("f-why").focus();
+    $("remove2").onclick = async () => { setWho($("f-who").value); if (await saveCard(card.id, { status:"removed", note: $("f-why").value.trim() })) closeEditor(); };
+  };
+  const rs = $("restore"); if (rs) rs.onclick = async () => { if (await saveCard(card.id, { status:"active" })) closeEditor(); };
+  $("f-name").focus();
+}
+function closeEditor(){ const ed=document.getElementById("editor"); ed.hidden=true; ed.innerHTML=""; }
+
+// ===== РЕДАКТОР МЕСТА =====
+function openPlaceEditor(place){
+  const isNew = !place;
+  const st = { code: place?.code || "111" };
+  const ed = document.getElementById("editor");
+  ed.hidden = false;
+  ed.innerHTML = `<div class="overlay"><div class="panel">
+    <h2>${isNew ? "Новое место" : "Место: " + esc(place.name)}</h2>
+    <div>
+      <label>Название</label><input type="text" id="p-name" value="${esc(place?.name||"")}" maxlength="40">
+      <label>Код</label><div class="picker" id="picker"></div>
+      <label>Статус</label>
+      <select id="p-status" style="font:inherit;padding:6px">
+        <option value="active" ${place?.status==="active"||isNew?"selected":""}>в базе</option>
+        <option value="candidate" ${place?.status==="candidate"?"selected":""}>кандидат (не утверждено)</option>
+        <option value="removed" ${place?.status==="removed"?"selected":""}>в расширении (снято)</option>
+      </select>
+      <label>Заметка</label><input type="text" id="p-note" value="${esc(place?.note||"")}">
+      <label>Кто правит (подпись в истории)</label><input type="text" id="p-who" value="${esc(WHO)}" maxlength="30" placeholder="Имя">
+    </div>
+    <div class="hints" id="hints"></div>
+    <div class="actions"><button class="btn primary" id="save">${isNew?"Добавить":"Сохранить"}</button><button class="btn" id="cancel">Отмена</button></div>
+  </div></div>`;
+  const $ = id => ed.querySelector("#"+id);
+  function drawPicker(){
+    $("picker").innerHTML = STRIPES.map((s,i) => `<div class="stripe"><b>${i+1}. ${s.name}</b>` +
+      s.values.map((v,j) => `<div class="opt${st.code[i]==String(j+1)?" on":""}" data-i="${i}" data-v="${j+1}"><span class="sw" style="background:${COLORS[j]}"></span>${v}</div>`).join("") + `</div>`).join("");
+    $("picker").querySelectorAll(".opt").forEach(o => o.onclick = () => { const a=[...st.code]; a[o.dataset.i]=o.dataset.v; st.code=a.join(""); drawPicker(); drawHints(); });
+  }
+  function drawHints(){
+    const same = activePlaces().filter(p => p.code===st.code && p.id!==place?.id);
+    const n = cardsFor(st.code).length;
+    $("hints").innerHTML = `<div class="h"><b>${codeWords(st.code)}</b><div class="fit">Общих карт в этой клетке: ${n}</div></div>` +
+      (same.length ? `<div class="h warn">В клетке уже есть: ${same.map(p=>esc(p.name)).join(", ")}. Правило: одно место на код; второе уходит в расширение.</div>` : `<div class="h good">Клетка свободна.</div>`) +
+      `<div class="h">У места крестиков нет: код точный. Место обязано тянуть все карты своей клетки.</div>`;
+  }
+  drawPicker(); drawHints();
+  $("cancel").onclick = closeEditor;
+  ed.querySelector(".overlay").onclick = e => { if (e.target===e.currentTarget) closeEditor(); };
+  $("save").onclick = async () => {
+    const fields = { name: $("p-name").value.trim(), code: st.code, status: $("p-status").value, note: $("p-note").value.trim() };
+    if (!fields.name){ toast("нужно название"); return; }
+    setWho($("p-who").value);
+    if (await savePlace(place?.id, fields)) closeEditor();
+  };
+}
+
+// ===== КТО ПРАВИТ =====
+function setWho(w){ WHO = (w||"").trim(); try{ localStorage.setItem("who", WHO); }catch(e){} drawWho(); }
+function drawWho(){ document.getElementById("who").textContent = WHO || "не представился"; }
+document.getElementById("who").onclick = () => {
+  const b = document.getElementById("who"); if (b.querySelector("input")) return;
+  b.innerHTML = `<input type="text" value="${esc(WHO)}" maxlength="30" style="font:inherit;padding:2px 4px;width:120px">`;
+  const i = b.querySelector("input"); i.focus();
+  const done = () => setWho(i.value); i.onblur = done; i.onkeydown = e => { if (e.key==="Enter") done(); };
+};
+
+// ===== СТАРТ =====
+document.getElementById("legend").innerHTML = STRIPES.map((s,i) => `<div class="st"><b>${i+1}. ${s.name}:</b>` + s.values.map((v,j)=>`<span class="sw" style="background:${COLORS[j]}"></span>${v}`).join("") + `</div>`).join("") + `<div class="st"><span class="sw any"></span>любой</div>`;
+drawWho();
+load().then(subscribe);
+</script>
+</body>
+</html>
