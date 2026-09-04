@@ -120,7 +120,6 @@
     <label>seed <input id="seed" type="text" style="width:6em" value=""></label>
     <button class="primary" id="newgame">Новая пятница</button>
     <button id="replay" title="та же раздача по seed">Повторить</button>
-    <button id="street" disabled>Собрать улицу</button>
     <span id="info" class="hint"></span>
     <span id="src" class="hint" style="margin-left:auto">база: …</span>
   </div>
@@ -194,7 +193,7 @@ function render(){
     bots.insertAdjacentHTML('beforeend', `<div class="bot"><div class="nm">Бот ${pi}</div><div class="things">${things}</div><div class="st">${pl.pick?'место положил':''}</div></div>`); });
   // стол: улица
   const zs=document.getElementById('zstreet'); zs.innerHTML='';
-  if(G.phase==='sbory'){ zs.innerHTML=G.players.map(pl=>pl.pick?backHTML(null,''):'<div class="slot pl"></div>').join(''); document.getElementById('streetttl').textContent='улица: кладут закрытыми'; }
+  if(G.phase==='sbory'){ zs.innerHTML=G.players.map(pl=>pl.pick?backHTML(null,''):'<div class="slot pl"></div>').join(''); document.getElementById('streetttl').textContent='улица: боты положили, положи своё место'; }
   else { zs.innerHTML=G.street.map((p,i)=> p.up ? placeHTML(p,'dim') : backHTML(null,'click','data-s="'+i+'"')).join(''); document.getElementById('streetttl').textContent='улица: клик открывает место'; }
   // верх
   document.getElementById('zplace').innerHTML = G.open ? placeHTML(G.open,'big') : '<div class="slotp"></div>';
@@ -204,7 +203,6 @@ function render(){
   if(G.phase==='vecher' && G.events.length){ const top=G.events[0]; zd.innerHTML='<div class="sh b"></div><div class="sh"></div>'+backHTML(top.code,'big click','id="topcard"'); }
   else zd.innerHTML='<div class="slotp"></div>';
   document.getElementById('next').disabled = !(G.phase==='vecher' && G.events.length>1);
-  document.getElementById('street').disabled = !(G.phase==='sbory' && G.players.every(pl=>pl.pick));
   // я
   const me=G.players[0]; const laidSet=new Set(me.lay.map(c=>c.t));
   document.getElementById('mylay').innerHTML = me.lay.map(c=>cardHTML(c,'pick'+((c.p&&laidSet.has(c.p))?' active':''))).join('')+'<div class="slot"></div>'.repeat(SLOTS-me.lay.length);
@@ -232,7 +230,6 @@ function shake(){ const z=document.getElementById('zplace'); z.animate([{transfo
 function nextCard(){ if(G.events.length<2) return; G.events.push(G.events.shift()); render(); }
 document.getElementById('newgame').onclick=()=>newGame(false);
 document.getElementById('replay').onclick=()=>newGame(true);
-document.getElementById('street').onclick=makeStreet;
 document.getElementById('next').onclick=nextCard;
 document.getElementById('zstreet').addEventListener('click',e=>{ const c=e.target.closest('.pc.click'); if(c) openStreet(+c.dataset.s); });
 document.getElementById('zdeck').addEventListener('click',e=>{ if(e.target.closest('#topcard')) tryEvent(); });
@@ -240,7 +237,7 @@ document.querySelector('.me').addEventListener('click',e=>{ const me=G.players[0
   const b=e.target.closest('button'); if(b){ me.lay=best(me.hand); render(); return; }
   const cd=e.target.closest('.card'); if(cd){ if(cd.classList.contains('blocked')) return; const c=me.hand.find(x=>x.i===+cd.dataset.i); if(!c) return;
     if(me.lay.includes(c)) me.lay=me.lay.filter(x=>x!==c); else if(me.lay.length<SLOTS&&!me.lay.some(x=>x.t===c.t)) me.lay.push(c); render(); return; }
-  const pc=e.target.closest('.pc.click'); if(pc && G.phase==='sbory'){ const p=me.phand.find(x=>x.j===+pc.dataset.j); me.pick=(me.pick===p)?null:p; render(); } });
+  const pc=e.target.closest('.pc.click'); if(pc && G.phase==='sbory'){ const p=me.phand.find(x=>x.j===+pc.dataset.j); me.pick=p; makeStreet(); } });
 loadLive().then(()=>{ document.getElementById('src').textContent='база: живая'; }).catch(e=>{ document.getElementById('src').textContent='база: снимок ('+e.message+')'; }).finally(()=>newGame(false));
 </script>
 </body>
