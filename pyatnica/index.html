@@ -168,9 +168,9 @@ function placeHTML(pl, cls, attrs){ return `<div class="pc ${cls||''}" ${attrs||
 function backHTML(code, cls, attrs){ return `<div class="pc back ${cls||''}" ${attrs||''}><div class="brand">Пятница</div>${code?stripeHTML(code):''}</div>`; }
 function eventHTML(ev, cls, attrs){ return `<div class="pc ev ${cls||''}" ${attrs||''}><div class="name">${ev.name}</div><div class="txt">${ev.text.replace(/\n/g,'<br>')}</div>${stripeHTML(ev.code)}</div>`; }
 function matches(place, ev){ for(let i=0;i<3;i++){ if(ev.code[i]!=='*' && ev.code[i]!==place.code[i]) return false; } return true; }
-function value(lay){ const set=new Set(lay.map(c=>c.t)); let v=0,act=0; for(const c of lay){ if(c.p&&set.has(c.p)){v+=2;act++;} else v+=1; } return {v,act}; }
+function weights(lay){ const set=new Set(lay.map(c=>c.t)); const w={}; for(const c of lay) w[c.t]=1; for(const c of lay) if(c.p&&set.has(c.p)) w[c.p]=2; return w; }
+function value(lay){ const w=weights(lay); let v=0,act=0; for(const t in w){ v+=w[t]; if(w[t]===2) act++; } return {v,act}; }
 function best(hand){ let bestL=[],bv=-1; const n=hand.length; for(let m=1;m<(1<<n);m++){ const L=[]; for(let i=0;i<n;i++) if(m&(1<<i)) L.push(hand[i]); if(L.length>SLOTS) continue; if(new Set(L.map(c=>c.t)).size<L.length) continue; const {v}=value(L); if(v>bv){bv=v;bestL=L;} } return bestL; }
-function weights(lay){ const set=new Set(lay.map(c=>c.t)); const w={}; for(const c of lay) w[c.t]=(c.p&&set.has(c.p))?2:1; return w; }
 function scorePlace(pl, w){ let s=0; for(const t in w){ const a=AFF[t]||{}; for(const i in a){ s+=(a[i][pl.code[i]]||0)*w[t]; } } return s; }
 function botPick(pl){ const w=weights(pl.lay); let bestS=-1e9, bestP=null; for(const p of shuffle(pl.phand.slice(),G.r)){ const s=scorePlace(p,w); if(s>bestS){bestS=s;bestP=p;} } pl.pick=bestP; }
 
@@ -188,7 +188,7 @@ function makeStreet(){ G.street=shuffle(G.players.map(p=>({...p.pick, up:false})
 function render(){
   const bots=document.getElementById('bots'); bots.innerHTML='';
   G.players.forEach((pl,pi)=>{ if(!pl.bot) return; const laidSet=new Set(pl.lay.map(c=>c.t));
-    const things=pl.lay.map(c=>`<div class="b t-${c.t}${(c.p&&laidSet.has(c.p))?' x2':''}"><span class="ico"></span></div>`).join('');
+    const W=weights(pl.lay); const things=pl.lay.map(c=>`<div class="b t-${c.t}${W[c.t]===2?' x2':''}"><span class="ico"></span></div>`).join('');
     bots.insertAdjacentHTML('beforeend', `<div class="bot"><div class="nm">Бот ${pi}</div><div class="things">${things}</div><div class="st">${pl.pick?'место положил':''}</div></div>`); });
   // стол: улица
   const zs=document.getElementById('zstreet'); zs.innerHTML='';
@@ -203,8 +203,8 @@ function render(){
   else zd.innerHTML='<div class="slotp mid"></div>';
   document.getElementById('next').disabled = !(G.phase==='vecher' && G.events.length>1);
   // я
-  const me=G.players[0]; const laidSet=new Set(me.lay.map(c=>c.t));
-  document.getElementById('mylay').innerHTML = me.lay.map(c=>cardHTML(c,'pick'+((c.p&&laidSet.has(c.p))?' active':''))).join('')+'<div class="slot"></div>'.repeat(SLOTS-me.lay.length);
+  const me=G.players[0]; const laidSet=new Set(me.lay.map(c=>c.t)); const W=weights(me.lay);
+  document.getElementById('mylay').innerHTML = me.lay.map(c=>cardHTML(c,'pick'+(W[c.t]===2?' active':''))).join('')+'<div class="slot"></div>'.repeat(SLOTS-me.lay.length);
   document.getElementById('myhand').innerHTML = me.hand.filter(c=>!me.lay.includes(c)).map(c=>{ const blocked=me.lay.length>=SLOTS||laidSet.has(c.t); return cardHTML(c, blocked?'pick blocked':'pick'); }).join('');
   const lock = G.phase!=='sbory';
   document.getElementById('myplace').innerHTML = me.pick ? placeHTML(me.pick, lock?'':'click chosen', 'data-j="'+me.pick.j+'"') : '<div class="slot pl"></div>';
