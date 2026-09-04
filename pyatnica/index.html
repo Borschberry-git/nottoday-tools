@@ -58,7 +58,8 @@
   .pair{display:flex;flex-direction:column;align-items:center;gap:4px}
   /* карты места и события */
   .pc{--w:120px;width:var(--w);aspect-ratio:63/88;background:#fff;border:1px solid #b8b1a3;border-radius:calc(var(--w)*.08);display:flex;flex-direction:column;overflow:hidden;position:relative;box-shadow:0 2px 6px rgba(0,0,0,.10);box-sizing:border-box}
-  .pc.big{--w:min(345px, calc((100vw - 330px - 260px)/2 - 40px))}
+  .pc.big{--w:min(517px, calc(100vw - 330px - 260px - 290px))}
+  .pc.mid{--w:230px}
   .pc .name{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:calc(var(--w)*.06);font-family:Georgia,serif;font-size:calc(var(--w)*.11);line-height:1.2}
   .pc .code{display:flex;height:calc(var(--w)*.22)}
   .pc .code span{flex:1;display:flex;align-items:center;justify-content:center;--bg:#999}
@@ -71,7 +72,8 @@
   .pc.click{cursor:pointer;transition:transform .12s}
   .pc.click:hover{transform:translateY(-4px)}
   .pc.dim{opacity:.45}
-  .slotp{--w:min(345px, calc((100vw - 330px - 260px)/2 - 40px));width:var(--w);aspect-ratio:63/88;border:2px dashed #e3ded3;border-radius:18px;box-sizing:border-box}
+  .slotp.mid{--w:230px}
+  .slotp{--w:min(517px, calc(100vw - 330px - 260px - 290px));width:var(--w);aspect-ratio:63/88;border:2px dashed #e3ded3;border-radius:18px;box-sizing:border-box}
   .deck{position:relative}
   .deck .sh{position:absolute;inset:0;background:#2b2a33;border-radius:18px;transform:translate(4px,4px);z-index:0;opacity:.6}
   .deck .sh.b{transform:translate(8px,8px);opacity:.3}
@@ -193,12 +195,12 @@ function render(){
   if(G.phase==='sbory'){ zs.innerHTML=G.players.map(pl=>pl.pick?backHTML(null,''):'<div class="slot pl"></div>').join(''); document.getElementById('streetttl').textContent='улица: боты положили, положи своё место'; }
   else { zs.innerHTML=G.street.map((p,i)=> p.up ? placeHTML(p,'dim') : backHTML(null,'click','data-s="'+i+'"')).join(''); document.getElementById('streetttl').textContent='улица: клик открывает место'; }
   // верх
-  document.getElementById('zplace').innerHTML = G.open ? placeHTML(G.open,'big') : '<div class="slotp"></div>';
+  document.getElementById('zplace').innerHTML = G.open ? placeHTML(G.open,'mid') : '<div class="slotp mid"></div>';
   document.getElementById('zevent').innerHTML = G.event ? eventHTML(G.event,'big') : '<div class="slotp"></div>';
   document.getElementById('discard').textContent = G.discard ? `сыграно: ${G.discard}` : '';
   const zd=document.getElementById('zdeck');
-  if(G.phase==='vecher' && G.events.length){ const top=G.events[0]; zd.innerHTML='<div class="sh b"></div><div class="sh"></div>'+backHTML(top.code,'big click','id="topcard"'); }
-  else zd.innerHTML='<div class="slotp"></div>';
+  if(G.phase==='vecher' && G.events.length){ const top=G.events[0]; zd.innerHTML='<div class="sh b"></div><div class="sh"></div>'+backHTML(top.code,'mid click','id="topcard"'); }
+  else zd.innerHTML='<div class="slotp mid"></div>';
   document.getElementById('next').disabled = !(G.phase==='vecher' && G.events.length>1);
   // я
   const me=G.players[0]; const laidSet=new Set(me.lay.map(c=>c.t));
@@ -219,7 +221,7 @@ function fly(fromEl, toEl, faceHTML, done){
   setTimeout(()=>{ /* середина переворота: подменяем лицо */ const tmp=document.createElement('div'); tmp.innerHTML=faceHTML; const face=tmp.firstElementChild; face.classList.add('fly'); face.style.left=clone.style.left; face.style.top=clone.style.top; face.style.setProperty('--w', clone.style.width); face.style.width=clone.style.width; face.style.transform='rotateY(180deg) scaleX(-1)'; face.style.transition='none'; clone.replaceWith(face); setTimeout(()=>face.remove(),330); }, 280);
 }
 function openStreet(i){ const p=G.street[i]; if(p.up) return; const from=document.querySelector(`#zstreet .pc[data-s="${i}"]`); const to=document.getElementById('zplace');
-  fly(from, to, placeHTML(p,'big'), ()=>{ p.up=true; G.open=p; G.event=null; render(); }); }
+  fly(from, to, placeHTML(p,'mid'), ()=>{ p.up=true; G.open=p; G.event=null; render(); }); }
 function tryEvent(){ if(!G.open){ shake(); return; } const ev=G.events[0]; const top=document.getElementById('topcard');
   if(matches(G.open, ev)){ const to=document.getElementById('zevent'); fly(top, to, eventHTML(ev,'big'), ()=>{ G.events.shift(); if(G.event) G.discard++; G.event=ev; render(); }); }
   else { const x=document.createElement('div'); x.className='cross'; x.textContent='✕'; top.appendChild(x); requestAnimationFrame(()=>requestAnimationFrame(()=>x.classList.add('fade'))); setTimeout(()=>x.remove(),1600); } }
