@@ -51,13 +51,14 @@
   /* стол */
   .table{grid-row:2;grid-column:2;background:#fff;border:1px solid #e3ded3;border-radius:12px;padding:12px;display:grid;grid-template-columns:auto 1fr auto;gap:18px;position:relative;overflow:hidden;align-items:start}
   .streetcol{display:flex;flex-direction:column;gap:8px;align-items:center}
-  .streetcol .ttl{font-size:12px;color:var(--gray);text-align:center;max-width:120px}
+  .streetcol .ttl{font-size:12px;color:var(--gray);text-align:center;max-width:260px}
+  .streetgrid{display:grid;grid-template-columns:repeat(2,120px);gap:10px}
   .zone{display:flex;flex-direction:column;align-items:center;gap:8px}
   .zone .ttl{font-size:12px;color:var(--gray)}
   .pair{display:flex;flex-direction:column;align-items:center;gap:4px}
   /* карты места и события */
   .pc{--w:120px;width:var(--w);aspect-ratio:63/88;background:#fff;border:1px solid #b8b1a3;border-radius:calc(var(--w)*.08);display:flex;flex-direction:column;overflow:hidden;position:relative;box-shadow:0 2px 6px rgba(0,0,0,.10);box-sizing:border-box}
-  .pc.big{--w:min(345px, calc((100vw - 330px - 120px)/2 - 40px))}
+  .pc.big{--w:min(345px, calc((100vw - 330px - 260px)/2 - 40px))}
   .pc .name{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:calc(var(--w)*.06);font-family:Georgia,serif;font-size:calc(var(--w)*.11);line-height:1.2}
   .pc .code{display:flex;height:calc(var(--w)*.22)}
   .pc .code span{flex:1;display:flex;align-items:center;justify-content:center;--bg:#999}
@@ -70,7 +71,7 @@
   .pc.click{cursor:pointer;transition:transform .12s}
   .pc.click:hover{transform:translateY(-4px)}
   .pc.dim{opacity:.45}
-  .slotp{--w:min(345px, calc((100vw - 330px - 120px)/2 - 40px));width:var(--w);aspect-ratio:63/88;border:2px dashed #e3ded3;border-radius:18px;box-sizing:border-box}
+  .slotp{--w:min(345px, calc((100vw - 330px - 260px)/2 - 40px));width:var(--w);aspect-ratio:63/88;border:2px dashed #e3ded3;border-radius:18px;box-sizing:border-box}
   .deck{position:relative}
   .deck .sh{position:absolute;inset:0;background:#2b2a33;border-radius:18px;transform:translate(4px,4px);z-index:0;opacity:.6}
   .deck .sh.b{transform:translate(8px,8px);opacity:.3}
@@ -125,9 +126,9 @@
   </div>
   <div class="bots"><h2>Боты</h2><div id="bots"></div></div>
   <div class="table">
-    <div class="streetcol"><div class="ttl" id="streetttl"></div><div id="zstreet" class="streetcol"></div></div>
-    <div class="zone"><div class="ttl">событие</div><div class="pair"><div id="zevent"><div class="slotp"></div></div><div id="zplace"><div class="slotp"></div></div></div><div class="discard" id="discard"></div></div>
-    <div class="zone"><div class="ttl">колода событий</div><div class="deck" id="zdeck"></div><button id="next" disabled>СЛЕДУЮЩАЯ</button></div>
+    <div class="streetcol"><div class="ttl" id="streetttl"></div><div id="zstreet" class="streetgrid"></div></div>
+    <div class="zone"><div class="ttl">событие</div><div id="zevent"><div class="slotp"></div></div><div class="discard" id="discard"></div></div>
+    <div class="zone"><div class="ttl">колода событий</div><div class="pair"><div class="deck" id="zdeck"></div><button id="next" disabled>СЛЕДУЮЩАЯ</button><div id="zplace"><div class="slotp"></div></div></div></div>
   </div>
   <div class="me">
     <div class="grp"><div class="ttl">мой персонаж <button data-act="auto" style="padding:1px 8px;font-size:12px">собрать</button></div><div class="lay" id="mylay"></div></div>
