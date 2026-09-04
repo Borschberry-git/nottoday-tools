@@ -49,15 +49,15 @@
   .bot .things .b.x2::after{content:"×2";position:absolute;right:-4px;bottom:-6px;font-size:9px;font-weight:bold;background:#fff;color:var(--ink);border-radius:4px;padding:0 2px;border:1px solid #b8b1a3}
   .bot .st{margin-left:auto;font-size:11px;color:var(--gray)}
   /* стол */
-  .table{grid-row:2;grid-column:2;background:#fff;border:1px solid #e3ded3;border-radius:12px;padding:12px;display:grid;grid-template-rows:1fr auto;gap:10px;position:relative;overflow:hidden}
-  .top{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start;justify-items:center}
+  .table{grid-row:2;grid-column:2;background:#fff;border:1px solid #e3ded3;border-radius:12px;padding:12px;display:grid;grid-template-columns:auto 1fr auto;gap:18px;position:relative;overflow:hidden;align-items:start}
+  .streetcol{display:flex;flex-direction:column;gap:8px;align-items:center}
+  .streetcol .ttl{font-size:12px;color:var(--gray);text-align:center;max-width:120px}
   .zone{display:flex;flex-direction:column;align-items:center;gap:8px}
   .zone .ttl{font-size:12px;color:var(--gray)}
-  .bottom{display:flex;gap:12px;justify-content:center;align-items:flex-end;min-height:180px}
-  .bottom .ttl{position:absolute;left:14px;bottom:10px;font-size:12px;color:var(--gray)}
+  .pair{display:flex;flex-direction:column;align-items:center;gap:4px}
   /* карты места и события */
   .pc{--w:120px;width:var(--w);aspect-ratio:63/88;background:#fff;border:1px solid #b8b1a3;border-radius:calc(var(--w)*.08);display:flex;flex-direction:column;overflow:hidden;position:relative;box-shadow:0 2px 6px rgba(0,0,0,.10);box-sizing:border-box}
-  .pc.big{--w:min(345px, calc((100vw - 330px)/3 - 24px))}
+  .pc.big{--w:min(345px, calc((100vw - 330px - 120px)/2 - 40px))}
   .pc .name{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:calc(var(--w)*.06);font-family:Georgia,serif;font-size:calc(var(--w)*.11);line-height:1.2}
   .pc .code{display:flex;height:calc(var(--w)*.22)}
   .pc .code span{flex:1;display:flex;align-items:center;justify-content:center;--bg:#999}
@@ -70,7 +70,7 @@
   .pc.click{cursor:pointer;transition:transform .12s}
   .pc.click:hover{transform:translateY(-4px)}
   .pc.dim{opacity:.45}
-  .slotp{--w:min(345px, calc((100vw - 330px)/3 - 24px));width:var(--w);aspect-ratio:63/88;border:2px dashed #e3ded3;border-radius:18px;box-sizing:border-box}
+  .slotp{--w:min(345px, calc((100vw - 330px - 120px)/2 - 40px));width:var(--w);aspect-ratio:63/88;border:2px dashed #e3ded3;border-radius:18px;box-sizing:border-box}
   .deck{position:relative}
   .deck .sh{position:absolute;inset:0;background:#2b2a33;border-radius:18px;transform:translate(4px,4px);z-index:0;opacity:.6}
   .deck .sh.b{transform:translate(8px,8px);opacity:.3}
@@ -125,13 +125,9 @@
   </div>
   <div class="bots"><h2>Боты</h2><div id="bots"></div></div>
   <div class="table">
-    <div class="top">
-      <div class="zone"><div class="ttl">место</div><div id="zplace"><div class="slotp"></div></div></div>
-      <div class="zone"><div class="ttl">событие</div><div id="zevent"><div class="slotp"></div></div><div class="discard" id="discard"></div></div>
-      <div class="zone"><div class="ttl">колода событий</div><div class="deck" id="zdeck"></div><button id="next" disabled>СЛЕДУЮЩАЯ</button></div>
-    </div>
-    <div class="bottom" id="zstreet"></div>
-    <div class="bottom ttl" id="streetttl"></div>
+    <div class="streetcol"><div class="ttl" id="streetttl"></div><div id="zstreet" class="streetcol"></div></div>
+    <div class="zone"><div class="ttl">событие</div><div class="pair"><div id="zevent"><div class="slotp"></div></div><div id="zplace"><div class="slotp"></div></div></div><div class="discard" id="discard"></div></div>
+    <div class="zone"><div class="ttl">колода событий</div><div class="deck" id="zdeck"></div><button id="next" disabled>СЛЕДУЮЩАЯ</button></div>
   </div>
   <div class="me">
     <div class="grp"><div class="ttl">мой персонаж <button data-act="auto" style="padding:1px 8px;font-size:12px">собрать</button></div><div class="lay" id="mylay"></div></div>
@@ -165,7 +161,7 @@ function shuffle(arr,r){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(r()
 function buildDeck(){ const d=[]; for(const t of THINGS) for(let i=0;i<SINGLES;i++) d.push({t,p:null}); for(const [a,b] of PAIRS){ d.push({t:a,p:b}); d.push({t:b,p:a}); } return d; }
 function cardHTML(c, cls){ return `<div class="card small ${cls} t-${c.t}" data-i="${c.i}"><span class="ico main"></span>${c.p?`<div class="dbl"><span class="x2">×2</span><span class="ico t-${c.p}"></span></div>`:''}</div>`; }
 function stripeHTML(code){ return '<div class="code">'+[...code].map((ch,i)=> ch==='*' ? '<span class="x">×</span>' : `<span style="background:${SCOL[ch]};--bg:${SCOL[ch]}"><svg><use href="#${ICONS[i][ch-1]}"/></svg></span>`).join('')+'</div>'; }
-function placeHTML(pl, cls, attrs){ return `<div class="pc ${cls||''}" ${attrs||''}><div class="name">${pl.name}</div>${stripeHTML(pl.code)}</div>`; }
+function placeHTML(pl, cls, attrs){ return `<div class="pc ${cls||''}" ${attrs||''}>${stripeHTML(pl.code)}<div class="name">${pl.name}</div></div>`; }
 function backHTML(code, cls, attrs){ return `<div class="pc back ${cls||''}" ${attrs||''}><div class="brand">Пятница</div>${code?stripeHTML(code):''}</div>`; }
 function eventHTML(ev, cls, attrs){ return `<div class="pc ev ${cls||''}" ${attrs||''}><div class="name">${ev.name}</div><div class="txt">${ev.text.replace(/\n/g,'<br>')}</div>${stripeHTML(ev.code)}</div>`; }
 function matches(place, ev){ for(let i=0;i<3;i++){ if(ev.code[i]!=='*' && ev.code[i]!==place.code[i]) return false; } return true; }
